@@ -12,7 +12,8 @@ import (
 var (
 	db      *gorm.DB
 	err     error
-	yellow  = color.New(color.FgYellow).SprintFunc()
+	cyan    = color.New(color.FgCyan).SprintFunc()
+	blue    = color.New(color.FgBlue).SprintFunc()
 	red     = color.New(color.FgRed).SprintFunc()
 	green   = color.New(color.FgGreen).SprintFunc()
 	rl      *readline.Instance
@@ -23,7 +24,7 @@ func main() {
 	db, err = gorm.Open("sqlite3", "minder.db")
 	defer db.Close()
 
-	db.AutoMigrate(&Project{})
+	db.AutoMigrate(&Project{}, &Task{})
 
 	completer := readline.NewPrefixCompleter(
 		readline.PcItem("say",

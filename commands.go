@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -83,7 +84,11 @@ func (l *ListProjects) Run(in string) {
 	fmt.Fprintln(w, green("Projects"), ": ", len(projects))
 	for _, p := range projects {
 		duration := time.Since(p.CreatedAt)
-		fmt.Fprintln(w, "\t", green("-"), "\t", p.Name, "\t", yellow(timeago.FromDuration(duration)), "ago")
+		numTasks := 0
+		db.Model(&Task{}).Where("project_id = ?", p.ID).Count(&numTasks)
+		fmt.Fprintln(w, "\t", green("-"), " ", p.Name, "\t",
+			blue("[", numTasks, "]"), "\t",
+			cyan(fmt.Sprintf("%s %s", timeago.FromDuration(duration), "ago")))
 	}
 	w.Flush()
 }
@@ -99,7 +104,16 @@ func (l *ListProjects) Register() []readline.PrefixCompleterInterface {
 type ListTasks struct{}
 
 func (l *ListTasks) Run(in string) {
-	println("listing tasks...")
+	project := context.C.(Project)
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	tasks := []Task{}
+	db.Model(&project).Related(&tasks)
+	fmt.Fprintln(w, green("Tasks"), ": ", len(tasks))
+	for _, t := range tasks {
+		fmt.Fprintln(w, "\t", green("-"), " ", t.Name, "\t", cyan(t.Description))
+	}
+	w.Flush()
 }
 
 func (l *ListTasks) Register() []readline.PrefixCompleterInterface {
@@ -131,9 +145,32 @@ func (c *CreateProject) Match(in string) bool {
 	return strings.Contains(in, "create-project")
 }
 
+type AddTask struct{}
+
+func (a *AddTask) Register() []readline.PrefixCompleterInterface {
+	return []readline.PrefixCompleterInterface{readline.PcItem("mktask")}
+}
+
+func (a *AddTask) Match(in string) bool {
+	return strings.Contains(in, "mktask")
+}
+
+func (a *AddTask) Run(in string) {
+	reader := bufio.NewReader(os.Stdin)
+	project := context.C.(Project)
+	println("adding tasks to:", project.Name)
+	fmt.Print("Task name: ")
+	name, _ := reader.ReadString('\n')
+	fmt.Print("Description: ")
+	description, _ := reader.ReadString('\n')
+	task := Task{Name: strings.TrimSpace(name), Description: strings.TrimSpace(description), ProjectID: project.ID}
+	db.Create(&task)
+}
+
 func NewProjectCommander(completer *readline.PrefixCompleter) *Commander {
 	println("new project commander")
 	handlers := []CommandHandler{
+		&AddTask{},
 		&ListTasks{},
 		&Cd{},
 	}
