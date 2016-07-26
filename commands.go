@@ -106,12 +106,12 @@ type ListTasks struct{}
 func (l *ListTasks) Run(in string) {
 	project := context.C.(Project)
 	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	w.Init(os.Stdout, 5, 0, 1, ' ', 0)
 	tasks := []Task{}
 	db.Model(&project).Related(&tasks)
 	fmt.Fprintln(w, green("Tasks"), ": ", len(tasks))
 	for _, t := range tasks {
-		fmt.Fprintln(w, "\t", green("-"), " ", t.Name, "\t", cyan(t.Description))
+		fmt.Fprintln(w, " ", green("-"), " ", t.Name, "\t\t\t", cyan(t.Description))
 	}
 	w.Flush()
 }

@@ -9,6 +9,7 @@ type Task struct {
 	Name        string
 	Description string
 	ProjectID   uint
+	Completed   bool
 }
 
 type Project struct {
